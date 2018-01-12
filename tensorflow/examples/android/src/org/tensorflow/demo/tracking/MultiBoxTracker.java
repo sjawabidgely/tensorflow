@@ -24,10 +24,21 @@ import android.graphics.Paint.Cap;
 import android.graphics.Paint.Join;
 import android.graphics.Paint.Style;
 import android.graphics.RectF;
+import android.os.AsyncTask;
 import android.text.TextUtils;
 import android.util.Pair;
 import android.util.TypedValue;
 import android.widget.Toast;
+
+import java.io.BufferedReader;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.ProtocolException;
+import java.net.URL;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
@@ -35,6 +46,8 @@ import org.tensorflow.demo.Classifier.Recognition;
 import org.tensorflow.demo.env.BorderedText;
 import org.tensorflow.demo.env.ImageUtils;
 import org.tensorflow.demo.env.Logger;
+
+import javax.net.ssl.HttpsURLConnection;
 
 /**
  * A tracker wrapping ObjectTracker that also handles non-max suppression and matching existing
@@ -90,7 +103,9 @@ public class MultiBoxTracker {
 
   private int frameWidth;
   private int frameHeight;
-
+  private String refReco;
+  private String cookingReco;
+  private String lastAppliance;
   private int sensorOrientation;
   private Context context;
 
@@ -106,6 +121,8 @@ public class MultiBoxTracker {
     boxPaint.setStrokeCap(Cap.ROUND);
     boxPaint.setStrokeJoin(Join.ROUND);
     boxPaint.setStrokeMiter(100);
+    refReco = getRefReco();
+    cookingReco = getCookingReco();
 
     textSizePx =
         TypedValue.applyDimension(
@@ -189,6 +206,14 @@ public class MultiBoxTracker {
           !TextUtils.isEmpty(recognition.title)
               ? String.format("%s %.2f", recognition.title, recognition.detectionConfidence)
               : String.format("%.2f", recognition.detectionConfidence);
+      logger.i(labelString);
+      if (recognition.title.equals("refrigerator")) {
+        recognition.title = refReco;
+        logger.i(labelString);
+      } else if (recognition.title.equals("microwave") || recognition.title.equals("oven")) {
+        recognition.title = cookingReco;
+        logger.i(labelString);
+      }
       borderedText.drawText(canvas, trackedPos.left + cornerSize, trackedPos.bottom, labelString);
     }
   }
@@ -418,4 +443,82 @@ public class MultiBoxTracker {
         recogToReplace != null ? recogToReplace.color : availableColors.poll();
     trackedObjects.add(trackedRecognition);
   }
+
+  private String getRefReco() {
+    HttpURLConnection connection = null;
+//    try {
+//      URL url = new URL("https://nvepatapi.bidgely.com/users/576a2262-cbce-4463-b10f-42fb5956ae94/homes/1/" +
+//              "recommendations?pageId=WholeHome&locale=en_US&access_token=93af6556-2a93-482e-8f75-587b7e38c7b2");
+//      connection = (HttpURLConnection) url.openConnection();
+//      connection.setRequestMethod("GET");
+//      connection.setRequestProperty("Content-Type",
+//              "application/x-www-form-urlencoded");
+//      connection.setRequestProperty("Content-Language", "en-US");
+//      connection.setUseCaches(false);
+//      connection.setDoOutput(true);
+//
+//      // send request
+//
+//
+//      //Get Response
+//      InputStream is = connection.getInputStream();
+//      int requestCode = connection.getResponseCode();
+//      logger.i("My request code: " + requestCode);
+//      BufferedReader rd = new BufferedReader(new InputStreamReader(is));
+//      StringBuilder response = new StringBuilder(); // or StringBuffer if Java version 5+
+//      String line;
+//      while ((line = rd.readLine()) != null) {
+//        response.append(line);
+//        response.append('\r');
+//      }
+//      rd.close();
+//      return response.toString();
+//    } catch (Exception e) {
+//      logger.e(e.getMessage());
+//      e.printStackTrace();
+//    }
+//    return "Old man";
+      new GetUrlContentTask().execute("https://nvepatapi.bidgely.com/users/576a2262-cbce-4463-b10f-42fb5956ae94/homes/1/recommendations?pageId=WholeHome&locale=en_US&access_token=93af6556-2a93-482e-8f75-587b7e38c7b2");
+//      new GetUrlContentTask().execute("https://google.com");
+      return "Old man";
+
+    }
+
+  private String getCookingReco() {
+    return "Yo. Go out with your wife and eat something outside";
+  }
+
+  private class GetUrlContentTask extends AsyncTask<String, Integer, String> {
+    protected String doInBackground(String... urls) {
+      String content = "";
+      try {
+        URL url = new URL(urls[0]);
+        List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>(1);
+        nameValuePairs.add(new BasicNameValuePair("test","a"));
+        nameValuePairs.add(new BasicNameValuePair("test","b"));
+        HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
+        connection.setRequestMethod("GET");
+        connection.setDoOutput(true);
+        connection.setConnectTimeout(5000);
+        connection.setReadTimeout(5000);
+        connection.connect();
+        BufferedReader rd = new BufferedReader(new InputStreamReader(connection.getErrorStream()));
+
+        String line = "";
+        while ((line = rd.readLine()) != null) {
+          content += line + "\n";
+        }
+      } catch (MalformedURLException m) {
+        m.printStackTrace();
+      } catch (ProtocolException p) {
+        p.printStackTrace();
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+
+      return content;
+    }
+
+  }
 }
+
