@@ -87,6 +87,7 @@ public class MultiBoxTracker {
 
   private final float textSizePx;
   private final BorderedText borderedText;
+  private final BorderedText decoratedText;
 
   private Matrix frameToCanvasMatrix;
 
@@ -117,6 +118,7 @@ public class MultiBoxTracker {
             TypedValue.applyDimension(
                     TypedValue.COMPLEX_UNIT_DIP, TEXT_SIZE_DIP, context.getResources().getDisplayMetrics());
     borderedText = new BorderedText(textSizePx);
+    decoratedText = new BorderedText(Color.WHITE, Color.MAGENTA, textSizePx * 1.5f);
   }
 
   private Matrix getFrameToCanvasMatrix() {
@@ -212,7 +214,8 @@ public class MultiBoxTracker {
         labelString = labelString + "      60KwH";
       }
       logger.i(labelString);
-      borderedText.drawText(canvas, trackedPos.left + cornerSize, trackedPos.bottom, labelString);
+      decoratedText.drawText(canvas, trackedPos.left + cornerSize, trackedPos.bottom, labelString);
+//      decoratedText.drawText(canvas, trackedPos.right - 200, trackedPos.bottom, "Yo");
 
       final Vector<String> recoLines = new Vector<String>();
 
@@ -245,7 +248,7 @@ public class MultiBoxTracker {
         recoLines.add("Install a dimmer switch");
         recoLines.add("Make your lights smart!");
       } else {
-        recoLines.add("No recommendations for this appliance!")
+        recoLines.add("No recommendations for this appliance!");
       }
 
       borderedText.drawLines(canvas, 10, canvas.getHeight(), recoLines);
