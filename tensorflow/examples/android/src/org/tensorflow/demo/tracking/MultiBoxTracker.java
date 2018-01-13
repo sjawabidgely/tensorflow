@@ -196,37 +196,41 @@ public class MultiBoxTracker {
                       ? String.format("%s %.2f", recognition.title, recognition.detectionConfidence)
                       : String.format("%.2f", recognition.detectionConfidence);*/;
       logger.i("Calling draw()");
-      /*
-      if (recognition.title.equals("refrigerator")) {
-        recognition.title = refReco;
-      } else if (recognition.title.equals("microwave") || recognition.title.equals("oven")) {
-        recognition.title = cookingReco;
-      }
-      */
-      final String labelString =
+
+      final String appliance = recognition.title;
+       String labelString =
               !TextUtils.isEmpty(recognition.title)
                       ? String.format("%s", recognition.title)
                       : String.format("%s", recognition.title);
+      if (appliance.equals("refrigerator")) {
+        labelString = labelString + "      65KwH";
+      } else if (appliance.equals("microwave") || appliance.equals("oven")) {
+        labelString = labelString + "      75KwH";
+      } else if (appliance.equals("laptop")) {
+        labelString = labelString + "      40KwH";
+      } else if (appliance.equals("chair")) {
+        labelString = labelString + "      60KwH";
+      }
       logger.i(labelString);
       borderedText.drawText(canvas, trackedPos.left + cornerSize, trackedPos.bottom, labelString);
 
       final Vector<String> recoLines = new Vector<String>();
 
-      if (recognition.title.equals("refrigerator")) {
+      if (appliance.equals("refrigerator")) {
         recoLines.add("Refrigerator Recommendation:");
         recoLines.add("Don't make your fridge sweat!");
         recoLines.add("If you have a 2nd refrigerator, ");
         recoLines.add("avoid putting it in the garage during summer, ");
         recoLines.add("as it will have to work a lot harder against the ");
         recoLines.add("high temperatures.");
-      } else if (recognition.title.equals("microwave") || recognition.title.equals("oven")) {
+      } else if (appliance.equals("microwave") || appliance.equals("oven")) {
         recoLines.add("Cooking Recommendation: ");
         recoLines.add("Turn on the oven light to look through the glass window");
         recoLines.add("instead of opening the oven door to check food.");
         recoLines.add("Flat-bottomed cookware allows for more contact with");
         recoLines.add("heating elements.");
         recoLines.add("Small meals call for small appliances.");
-      } else if (recognition.title.equals("laptop")) {
+      } else if (appliance.equals("laptop")) {
         recoLines.add("Dish washer Recommendation: ");
         recoLines.add("Be lazy with your dishes!  ");
         recoLines.add("dishwasher requires less than one-third the water ");
@@ -234,14 +238,14 @@ public class MultiBoxTracker {
         recoLines.add("the sink. ");
         recoLines.add("By running a full dishwasher, you can cut down the ");
         recoLines.add("operating time of the hot water heater.");
-      } else if (recognition.title.equals("chair")) {
+      } else if (appliance.equals("chair")) {
         recoLines.add("Lighting Recommendation: ");
         recoLines.add("Switch to LED lights");
         recoLines.add("Why light an entire room? Light only what you need.");
         recoLines.add("Install a dimmer switch");
         recoLines.add("Make your lights smart!");
       } else {
-        recoLines.add("Unknown or no appliance detected.");
+        recoLines.add("No recommendations for this appliance!")
       }
 
       borderedText.drawLines(canvas, 10, canvas.getHeight(), recoLines);
