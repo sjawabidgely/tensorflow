@@ -24,30 +24,19 @@ import android.graphics.Paint.Cap;
 import android.graphics.Paint.Join;
 import android.graphics.Paint.Style;
 import android.graphics.RectF;
-import android.os.AsyncTask;
 import android.text.TextUtils;
 import android.util.Pair;
 import android.util.TypedValue;
 import android.widget.Toast;
-
-import java.io.BufferedReader;
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.ProtocolException;
-import java.net.URL;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
+import java.util.Vector;
+
 import org.tensorflow.demo.Classifier.Recognition;
 import org.tensorflow.demo.env.BorderedText;
 import org.tensorflow.demo.env.ImageUtils;
 import org.tensorflow.demo.env.Logger;
-
-import javax.net.ssl.HttpsURLConnection;
 
 /**
  * A tracker wrapping ObjectTracker that also handles non-max suppression and matching existing
@@ -72,10 +61,10 @@ public class MultiBoxTracker {
   private static final float MIN_CORRELATION = 0.3f;
 
   private static final int[] COLORS = {
-    Color.BLUE, Color.RED, Color.GREEN, Color.YELLOW, Color.CYAN, Color.MAGENTA, Color.WHITE,
-    Color.parseColor("#55FF55"), Color.parseColor("#FFA500"), Color.parseColor("#FF8888"),
-    Color.parseColor("#AAAAFF"), Color.parseColor("#FFFFAA"), Color.parseColor("#55AAAA"),
-    Color.parseColor("#AA33AA"), Color.parseColor("#0D0068")
+          Color.BLUE, Color.RED, Color.GREEN, Color.YELLOW, Color.CYAN, Color.MAGENTA, Color.WHITE,
+          Color.parseColor("#55FF55"), Color.parseColor("#FFA500"), Color.parseColor("#FF8888"),
+          Color.parseColor("#AAAAFF"), Color.parseColor("#FFFFAA"), Color.parseColor("#55AAAA"),
+          Color.parseColor("#AA33AA"), Color.parseColor("#0D0068")
   };
 
   private final Queue<Integer> availableColors = new LinkedList<Integer>();
@@ -125,8 +114,8 @@ public class MultiBoxTracker {
     cookingReco = getCookingReco();
 
     textSizePx =
-        TypedValue.applyDimension(
-            TypedValue.COMPLEX_UNIT_DIP, TEXT_SIZE_DIP, context.getResources().getDisplayMetrics());
+            TypedValue.applyDimension(
+                    TypedValue.COMPLEX_UNIT_DIP, TEXT_SIZE_DIP, context.getResources().getDisplayMetrics());
     borderedText = new BorderedText(textSizePx);
   }
 
@@ -172,7 +161,7 @@ public class MultiBoxTracker {
   }
 
   public synchronized void trackResults(
-      final List<Recognition> results, final byte[] frame, final long timestamp) {
+          final List<Recognition> results, final byte[] frame, final long timestamp) {
     logger.i("Processing %d results from %d", results.size(), timestamp);
     processResults(timestamp, results, frame);
   }
@@ -180,21 +169,21 @@ public class MultiBoxTracker {
   public synchronized void draw(final Canvas canvas) {
     final boolean rotated = sensorOrientation % 180 == 90;
     final float multiplier =
-        Math.min(canvas.getHeight() / (float) (rotated ? frameWidth : frameHeight),
-                 canvas.getWidth() / (float) (rotated ? frameHeight : frameWidth));
+            Math.min(canvas.getHeight() / (float) (rotated ? frameWidth : frameHeight),
+                    canvas.getWidth() / (float) (rotated ? frameHeight : frameWidth));
     frameToCanvasMatrix =
-        ImageUtils.getTransformationMatrix(
-            frameWidth,
-            frameHeight,
-            (int) (multiplier * (rotated ? frameHeight : frameWidth)),
-            (int) (multiplier * (rotated ? frameWidth : frameHeight)),
-            sensorOrientation,
-            false);
+            ImageUtils.getTransformationMatrix(
+                    frameWidth,
+                    frameHeight,
+                    (int) (multiplier * (rotated ? frameHeight : frameWidth)),
+                    (int) (multiplier * (rotated ? frameWidth : frameHeight)),
+                    sensorOrientation,
+                    false);
     for (final TrackedRecognition recognition : trackedObjects) {
       final RectF trackedPos =
-          (objectTracker != null)
-              ? recognition.trackedObject.getTrackedPositionInPreviewFrame()
-              : new RectF(recognition.location);
+              (objectTracker != null)
+                      ? recognition.trackedObject.getTrackedPositionInPreviewFrame()
+                      : new RectF(recognition.location);
 
       getFrameToCanvasMatrix().mapRect(trackedPos);
       boxPaint.setColor(recognition.color);
@@ -202,31 +191,73 @@ public class MultiBoxTracker {
       final float cornerSize = Math.min(trackedPos.width(), trackedPos.height()) / 8.0f;
       canvas.drawRoundRect(trackedPos, cornerSize, cornerSize, boxPaint);
 
-      final String labelString =
-          !TextUtils.isEmpty(recognition.title)
-              ? String.format("%s %.2f", recognition.title, recognition.detectionConfidence)
-              : String.format("%.2f", recognition.detectionConfidence);
-      logger.i(labelString);
+      /*final String labelString =
+              !TextUtils.isEmpty(recognition.title)
+                      ? String.format("%s %.2f", recognition.title, recognition.detectionConfidence)
+                      : String.format("%.2f", recognition.detectionConfidence);*/;
+      logger.i("Calling draw()");
+      /*
       if (recognition.title.equals("refrigerator")) {
         recognition.title = refReco;
-        logger.i(labelString);
       } else if (recognition.title.equals("microwave") || recognition.title.equals("oven")) {
         recognition.title = cookingReco;
-        logger.i(labelString);
       }
+      */
+      final String labelString =
+              !TextUtils.isEmpty(recognition.title)
+                      ? String.format("%s", recognition.title)
+                      : String.format("%s", recognition.title);
+      logger.i(labelString);
       borderedText.drawText(canvas, trackedPos.left + cornerSize, trackedPos.bottom, labelString);
+
+      final Vector<String> recoLines = new Vector<String>();
+
+      if (recognition.title.equals("refrigerator")) {
+        recoLines.add("Refrigerator Recommendation:");
+        recoLines.add("Don't make your fridge sweat!");
+        recoLines.add("If you have a 2nd refrigerator, ");
+        recoLines.add("avoid putting it in the garage during summer, ");
+        recoLines.add("as it will have to work a lot harder against the ");
+        recoLines.add("high temperatures.");
+      } else if (recognition.title.equals("microwave") || recognition.title.equals("oven")) {
+        recoLines.add("Cooking Recommendation: ");
+        recoLines.add("Turn on the oven light to look through the glass window");
+        recoLines.add("instead of opening the oven door to check food.");
+        recoLines.add("Flat-bottomed cookware allows for more contact with");
+        recoLines.add("heating elements.");
+        recoLines.add("Small meals call for small appliances.");
+      } else if (recognition.title.equals("laptop")) {
+        recoLines.add("Dish washer Recommendation: ");
+        recoLines.add("Be lazy with your dishes!  ");
+        recoLines.add("dishwasher requires less than one-third the water ");
+        recoLines.add("it would take to hand-wash those same dishes in ");
+        recoLines.add("the sink. ");
+        recoLines.add("By running a full dishwasher, you can cut down the ");
+        recoLines.add("operating time of the hot water heater.");
+      } else if (recognition.title.equals("chair")) {
+        recoLines.add("Lighting Recommendation: ");
+        recoLines.add("Switch to LED lights");
+        recoLines.add("Why light an entire room? Light only what you need.");
+        recoLines.add("Install a dimmer switch");
+        recoLines.add("Make your lights smart!");
+      } else {
+        recoLines.add("Unknown or no appliance detected.");
+      }
+
+      borderedText.drawLines(canvas, 10, canvas.getHeight(), recoLines);
+
     }
   }
 
   private boolean initialized = false;
 
   public synchronized void onFrame(
-      final int w,
-      final int h,
-      final int rowStride,
-      final int sensorOrienation,
-      final byte[] frame,
-      final long timestamp) {
+          final int w,
+          final int h,
+          final int rowStride,
+          final int sensorOrienation,
+          final byte[] frame,
+          final long timestamp) {
     if (objectTracker == null && !initialized) {
       ObjectTracker.clearInstance();
 
@@ -239,8 +270,8 @@ public class MultiBoxTracker {
 
       if (objectTracker == null) {
         String message =
-            "Object tracking support not found. "
-                + "See tensorflow/examples/android/README.md for details.";
+                "Object tracking support not found. "
+                        + "See tensorflow/examples/android/README.md for details.";
         Toast.makeText(context, message, Toast.LENGTH_LONG).show();
         logger.e(message);
       }
@@ -254,7 +285,7 @@ public class MultiBoxTracker {
 
     // Clean up any objects not worth tracking any more.
     final LinkedList<TrackedRecognition> copyList =
-        new LinkedList<TrackedRecognition>(trackedObjects);
+            new LinkedList<TrackedRecognition>(trackedObjects);
     for (final TrackedRecognition recognition : copyList) {
       final ObjectTracker.TrackedObject trackedObject = recognition.trackedObject;
       final float correlation = trackedObject.getCurrentCorrelation();
@@ -269,7 +300,7 @@ public class MultiBoxTracker {
   }
 
   private void processResults(
-      final long timestamp, final List<Recognition> results, final byte[] originalFrame) {
+          final long timestamp, final List<Recognition> results, final byte[] originalFrame) {
     final List<Pair<Float, Recognition>> rectsToTrack = new LinkedList<Pair<Float, Recognition>>();
 
     screenRects.clear();
@@ -285,7 +316,7 @@ public class MultiBoxTracker {
       rgbFrameToScreen.mapRect(detectionScreenRect, detectionFrameRect);
 
       logger.v(
-          "Result! Frame: " + result.getLocation() + " mapped to screen:" + detectionScreenRect);
+              "Result! Frame: " + result.getLocation() + " mapped to screen:" + detectionScreenRect);
 
       screenRects.add(new Pair<Float, RectF>(result.getConfidence(), detectionScreenRect));
 
@@ -327,14 +358,14 @@ public class MultiBoxTracker {
   }
 
   private void handleDetection(
-      final byte[] frameCopy, final long timestamp, final Pair<Float, Recognition> potential) {
+          final byte[] frameCopy, final long timestamp, final Pair<Float, Recognition> potential) {
     final ObjectTracker.TrackedObject potentialObject =
-        objectTracker.trackObject(potential.second.getLocation(), timestamp, frameCopy);
+            objectTracker.trackObject(potential.second.getLocation(), timestamp, frameCopy);
 
     final float potentialCorrelation = potentialObject.getCurrentCorrelation();
     logger.v(
-        "Tracked object went from %s to %s with correlation %.2f",
-        potential.second, potentialObject.getTrackedPositionInPreviewFrame(), potentialCorrelation);
+            "Tracked object went from %s to %s with correlation %.2f",
+            potential.second, potentialObject.getTrackedPositionInPreviewFrame(), potentialCorrelation);
 
     if (potentialCorrelation < MARGINAL_CORRELATION) {
       logger.v("Correlation too low to begin tracking %s.", potentialObject);
@@ -367,7 +398,7 @@ public class MultiBoxTracker {
       // recognition needs to be removed and possibly replaced with the new one.
       if (intersects && intersectOverUnion > MAX_OVERLAP) {
         if (potential.first < trackedRecognition.detectionConfidence
-            && trackedRecognition.trackedObject.getCurrentCorrelation() > MARGINAL_CORRELATION) {
+                && trackedRecognition.trackedObject.getCurrentCorrelation() > MARGINAL_CORRELATION) {
           // If track for the existing object is still going strong and the detection score was
           // good, reject this new object.
           potentialObject.stopTracking();
@@ -392,7 +423,7 @@ public class MultiBoxTracker {
       for (final TrackedRecognition candidate : trackedObjects) {
         if (candidate.detectionConfidence < potential.first) {
           if (recogToReplace == null
-              || candidate.detectionConfidence < recogToReplace.detectionConfidence) {
+                  || candidate.detectionConfidence < recogToReplace.detectionConfidence) {
             // Save it so that we use this color for the new object.
             recogToReplace = candidate;
           }
@@ -409,10 +440,10 @@ public class MultiBoxTracker {
     // Remove everything that got intersected.
     for (final TrackedRecognition trackedRecognition : removeList) {
       logger.v(
-          "Removing tracked object %s with detection confidence %.2f, correlation %.2f",
-          trackedRecognition.trackedObject,
-          trackedRecognition.detectionConfidence,
-          trackedRecognition.trackedObject.getCurrentCorrelation());
+              "Removing tracked object %s with detection confidence %.2f, correlation %.2f",
+              trackedRecognition.trackedObject,
+              trackedRecognition.detectionConfidence,
+              trackedRecognition.trackedObject.getCurrentCorrelation());
       trackedRecognition.trackedObject.stopTracking();
       trackedObjects.remove(trackedRecognition);
       if (trackedRecognition != recogToReplace) {
@@ -428,11 +459,11 @@ public class MultiBoxTracker {
 
     // Finally safe to say we can track this object.
     logger.v(
-        "Tracking object %s (%s) with detection confidence %.2f at position %s",
-        potentialObject,
-        potential.second.getTitle(),
-        potential.first,
-        potential.second.getLocation());
+            "Tracking object %s (%s) with detection confidence %.2f at position %s",
+            potentialObject,
+            potential.second.getTitle(),
+            potential.first,
+            potential.second.getLocation());
     final TrackedRecognition trackedRecognition = new TrackedRecognition();
     trackedRecognition.detectionConfidence = potential.first;
     trackedRecognition.trackedObject = potentialObject;
@@ -440,85 +471,15 @@ public class MultiBoxTracker {
 
     // Use the color from a replaced object before taking one from the color queue.
     trackedRecognition.color =
-        recogToReplace != null ? recogToReplace.color : availableColors.poll();
+            recogToReplace != null ? recogToReplace.color : availableColors.poll();
     trackedObjects.add(trackedRecognition);
   }
 
   private String getRefReco() {
-    HttpURLConnection connection = null;
-//    try {
-//      URL url = new URL("https://nvepatapi.bidgely.com/users/576a2262-cbce-4463-b10f-42fb5956ae94/homes/1/" +
-//              "recommendations?pageId=WholeHome&locale=en_US&access_token=93af6556-2a93-482e-8f75-587b7e38c7b2");
-//      connection = (HttpURLConnection) url.openConnection();
-//      connection.setRequestMethod("GET");
-//      connection.setRequestProperty("Content-Type",
-//              "application/x-www-form-urlencoded");
-//      connection.setRequestProperty("Content-Language", "en-US");
-//      connection.setUseCaches(false);
-//      connection.setDoOutput(true);
-//
-//      // send request
-//
-//
-//      //Get Response
-//      InputStream is = connection.getInputStream();
-//      int requestCode = connection.getResponseCode();
-//      logger.i("My request code: " + requestCode);
-//      BufferedReader rd = new BufferedReader(new InputStreamReader(is));
-//      StringBuilder response = new StringBuilder(); // or StringBuffer if Java version 5+
-//      String line;
-//      while ((line = rd.readLine()) != null) {
-//        response.append(line);
-//        response.append('\r');
-//      }
-//      rd.close();
-//      return response.toString();
-//    } catch (Exception e) {
-//      logger.e(e.getMessage());
-//      e.printStackTrace();
-//    }
-//    return "Old man";
-      new GetUrlContentTask().execute("https://nvepatapi.bidgely.com/users/576a2262-cbce-4463-b10f-42fb5956ae94/homes/1/recommendations?pageId=WholeHome&locale=en_US&access_token=93af6556-2a93-482e-8f75-587b7e38c7b2");
-//      new GetUrlContentTask().execute("https://google.com");
-      return "Old man";
-
-    }
+    return "Buy a new refrigerator old man";
+  }
 
   private String getCookingReco() {
     return "Yo. Go out with your wife and eat something outside";
   }
-
-  private class GetUrlContentTask extends AsyncTask<String, Integer, String> {
-    protected String doInBackground(String... urls) {
-      String content = "";
-      try {
-        URL url = new URL(urls[0]);
-        List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>(1);
-        nameValuePairs.add(new BasicNameValuePair("test","a"));
-        nameValuePairs.add(new BasicNameValuePair("test","b"));
-        HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
-        connection.setRequestMethod("GET");
-        connection.setDoOutput(true);
-        connection.setConnectTimeout(5000);
-        connection.setReadTimeout(5000);
-        connection.connect();
-        BufferedReader rd = new BufferedReader(new InputStreamReader(connection.getErrorStream()));
-
-        String line = "";
-        while ((line = rd.readLine()) != null) {
-          content += line + "\n";
-        }
-      } catch (MalformedURLException m) {
-        m.printStackTrace();
-      } catch (ProtocolException p) {
-        p.printStackTrace();
-      } catch (IOException e) {
-        e.printStackTrace();
-      }
-
-      return content;
-    }
-
-  }
 }
-
